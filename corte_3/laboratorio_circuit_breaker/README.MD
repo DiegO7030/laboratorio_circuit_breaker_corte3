@@ -454,6 +454,8 @@ l servicio se encuentra funcionando correctamente. Se realizaron pruebas desde e
 
 Además, el sistema muestra la información registrada de usuarios y mascotas, y el estado de los circuitos aparece como **CERRADO**, lo que indica que los servicios están disponibles y respondiendo correctamente.
 
+## Evidencia Servicio Funcionando
+
 ![Evidencia Servicio Funcionando](evidencias/Serviciosfun1.png)
 
 ---
@@ -466,6 +468,8 @@ En el segundo caso, el Gateway continúa funcionando, pero el servicio de usuari
 
 Esto nos demuestra el manejo de fallas dentro del sistema.
 
+## Evidencia Servicio caido
+
 ![Evidencia Servicio caido](evidencias/Servicioscaido.png)
 
 ---
@@ -476,6 +480,7 @@ Durante la prueba se apagó el servicio de usuarios y se realizaron varias petic
 
 Después de alcanzar el límite de fallos configurado, el Circuit Breaker cambia el estado del servicio de usuarios a **ABIERTO**. En este estado, el Gateway deja de intentar conectarse temporalmente al servicio caído y responde con el mensaje `"Servicio de usuarios temporalmente bloqueado"`.
 
+## Evidencia circuito abierto
 
 ![Evidencia circuito abierto](evidencias/circuitoabierto.png)
 
@@ -487,8 +492,23 @@ En esta prueba se evidencia el proceso de recuperación del servicio de usuarios
 
 Después de pasar el tiempo de reintento, el circuito cambia al estado **HALF_OPEN**, lo que indica que el sistema está intentando verificar si el servicio de usuarios ya puede volver a responder correctamente. Esta fase permite comprobar si el servicio se recuperó antes de cerrar nuevamente el circuito.
 
+---
+
+## Evidencia Recuperación del servicio
+
 ![Evidencia Recuperación del servicio](evidencias/Recuperacion.png)
 
+---
+
+## Conclusión de la Fase 5
+
+En esta fase se validó el funcionamiento general del sistema mediante diferentes pruebas de testing. Se comprobó que, cuando los servicios están activos, los endpoints `/usuarios`, `/mascotas` y `/estado-circuitos` responden correctamente y muestran la información esperada.
+
+También se evidenció el comportamiento del sistema cuando ocurre una falla. Al detener el Gateway, las rutas dejan de estar disponibles, mostrando que este componente es el punto principal de entrada. Por otro lado, cuando se cae un microservicio como el de usuarios, el Gateway continúa funcionando y responde con mensajes controlados, evitando que el sistema falle por completo.
+
+Además, se verificó el funcionamiento del patrón **Circuit Breaker**, el cual permite detectar fallos repetidos, abrir el circuito para bloquear temporalmente las peticiones hacia un servicio caído y luego pasar al estado **HALF_OPEN** para intentar su recuperación.
+
+En conclusión, la Fase 5 permitió comprobar que el sistema responde correctamente en escenarios normales, de falla y de recuperación, demostrando un mejor control de errores y una comunicación más segura entre los microservicios.
 
 
 
