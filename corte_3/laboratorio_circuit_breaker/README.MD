@@ -112,7 +112,7 @@ Después de varios intentos fallidos, el Circuit Breaker entra en estado abierto
 
 ## Evidencia de la Fase 1
 
-![Evidencia Fase 1](evidencias/fase1.png)
+![Evidencia Fase 1](evidencias/Fase1.png)
 
 ---
 
