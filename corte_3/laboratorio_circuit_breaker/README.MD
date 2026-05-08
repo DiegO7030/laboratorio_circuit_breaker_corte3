@@ -431,7 +431,7 @@ Se evidenciaron logs como:
 
 Estos logs muestran que el sistema detectó los fallos, abrió el circuito, esperó el tiempo definido y luego permitió un nuevo intento de conexión.
 
-### Evidencia Fase 4
+## Evidencia Fase 4
 
 ![Evidencia Fase 4](evidencias/Fase4.png)
 
