@@ -136,7 +136,7 @@ Los endpoints trabajados fueron:
 
 ```txt
 /usuarios
-/mascotas
+/estado-circuitos
 ```
 
 La idea principal fue que cada servicio manejara su propio circuito y su propio contador de fallos.
@@ -248,17 +248,19 @@ Ejemplo de respuesta:
 ```json
 {
   "mascotas": {
-    "circuito_abierto": false,
+    "servicio": "funcionando",
+    "circuito": "cerrado",
     "fallos": 0
   },
   "usuarios": {
-    "circuito_abierto": false,
-    "fallos": 0
+    "servicio": "no disponible",
+    "circuito": "abierto",
+    "fallos": 3
   }
 }
 ```
 
-Esto facilita verificar qué servicio se encuentra funcionando y cuál está bloqueado.
+Esto facilita verificar qué servicio se encuentra funcionando y cuál está bloqueado y registrar la catidad de fallos para cada servicio.
 
 ---
 
@@ -350,7 +352,7 @@ Esto mejora la estabilidad general del sistema.
 
 ## Evidencia de la Fase 2
 
-![Evidencia Fase 2](evidencias/fase2.png)
+![Evidencia Fase 2](evidencias/Fase2.png)
 
 ---
 
@@ -364,71 +366,9 @@ El sistema ahora es más resistente y puede continuar funcionando parcialmente i
 
 ---
 
-# FASE 3 – INVESTIGACIÓN DEL ESTADO HALF-OPEN
-
-## ¿Qué es Half-Open?
-
-Half-Open es un estado intermedio dentro del patrón Circuit Breaker.
-
-Cuando el circuito ha permanecido abierto durante cierto tiempo, el gateway permite una petición de prueba para verificar si el servicio volvió a funcionar.
-
----
-
-## ¿Cuándo se realiza el nuevo intento?
-
-El nuevo intento ocurre después de un tiempo de espera definido.
-
-Ejemplo:
-
-```txt
-Servicio falla
-→ Circuito abierto
-→ Espera controlada
-→ Intento de prueba (Half-Open)
-```
-
----
-
-## ¿Qué ocurre si el servicio responde correctamente?
-
-Si el servicio responde bien durante la prueba:
-
-```txt
-Half-Open
-→ Servicio recuperado
-→ Circuito cerrado
-→ Reinicio del contador de fallos
-```
-
-El gateway vuelve a trabajar normalmente.
-
----
-
-## ¿Qué ocurre si vuelve a fallar?
-
-Si el servicio sigue caído:
-
-```txt
-Half-Open
-→ Nuevo fallo
-→ Circuito abierto nuevamente
-```
-
-De esta manera el sistema evita seguir insistiendo sobre un backend que todavía no se ha recuperado.
-
----
-
-## Diferencia frente a la versión anterior
-
-En la versión anterior el circuito se abría y quedaba bloqueado indefinidamente.
-
-Con el estado Half-Open el sistema puede intentar recuperarse automáticamente después de cierto tiempo.
-
----
-
 ## Evidencia de la Fase 3
 
-![Evidencia Fase 3](evidencias/fase3.png)
+![Evidencia Fase 3](evidencias/Fase3.png)
 
 ---
 
@@ -437,3 +377,67 @@ Con el estado Half-Open el sistema puede intentar recuperarse automáticamente d
 El estado Half-Open mejora el comportamiento del Circuit Breaker porque permite comprobar si un servicio ya se recuperó.
 
 Gracias a esto, el gateway no depende de reinicios manuales y puede restaurar automáticamente el funcionamiento normal del sistema cuando el backend vuelve a estar disponible.
+
+---
+
+## FASE 4 – IMPLEMENTAR: Recuperación del Circuit Breaker
+
+En esta fase se implementó la recuperación automática del Circuit Breaker mediante el estado **Half-Open**.
+
+Se agregó una espera controlada de **10 segundos**. Cuando un servicio falla varias veces, el circuito se abre y deja de enviar peticiones temporalmente. Después del tiempo de espera, el gateway realiza un nuevo intento de conexión para verificar si el servicio ya se recuperó.
+
+### ¿Qué se hizo?
+
+- Se agregó un tiempo de espera de 10 segundos.
+- Se guardó el momento del último fallo del servicio.
+- Se permitió un nuevo intento de conexión después del tiempo definido.
+- Si el servicio responde correctamente, el circuito se cierra.
+- Si el servicio vuelve a fallar, el circuito permanece abierto.
+
+### ¿Qué se observó?
+
+Al apagar el servicio de mascotas, el gateway detectó los fallos y abrió el circuito.  
+Mientras mascotas estaba caído, el servicio de usuarios siguió funcionando normalmente.
+
+Después de encender nuevamente el servicio de mascotas y esperar los 10 segundos, el gateway realizó un nuevo intento de conexión. Como el servicio respondió correctamente, el circuito se cerró y el sistema volvió a funcionar normalmente.
+
+### Comandos utilizados
+
+Para apagar el servicio de mascotas:
+
+`docker compose stop backend`
+
+Para encender nuevamente el servicio:
+
+`docker compose start backend`
+
+Para revisar el estado de los circuitos:
+
+`http://localhost:5000/estado-circuitos`
+
+### Logs observados
+
+Se evidenciaron logs como:
+
+`Fallo número 1 en mascotas`
+
+`Fallo número 2 en mascotas`
+
+`Fallo número 3 en mascotas`
+
+`Circuito abierto para mascotas`
+
+`Circuito de mascotas en HALF_OPEN, probando recuperación...`
+
+Estos logs muestran que el sistema detectó los fallos, abrió el circuito, esperó el tiempo definido y luego permitió un nuevo intento de conexión.
+
+### Evidencia
+
+![Evidencia Fase 4](evidencias/Fase4.png)
+
+### Conclusión
+
+La recuperación implementada permite que el Circuit Breaker no quede abierto de forma permanente.  
+Ahora el gateway espera un tiempo controlado, intenta reconectarse y decide si cierra el circuito o si lo mantiene abierto. Esto mejora la tolerancia a fallos del sistema.
+
+

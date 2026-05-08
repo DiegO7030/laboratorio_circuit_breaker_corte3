@@ -1,29 +1,66 @@
 from flask import Flask, jsonify
 import requests
+import time
 
 app = Flask(__name__)
 
+TIEMPO_ESPERA = 10
+
 fallos_backend = 0
 circuito_backend_abierto = False
+ultimo_fallo_backend = None
 
 fallos_usuarios = 0
 circuito_usuarios_abierto = False
+ultimo_fallo_usuarios = None
+
+
+def tiempo_para_reintento(ultimo_fallo):
+    if ultimo_fallo is None:
+        return 0
+
+    tiempo_transcurrido = time.time() - ultimo_fallo
+    tiempo_restante = TIEMPO_ESPERA - tiempo_transcurrido
+
+    if tiempo_restante < 0:
+        return 0
+
+    return int(tiempo_restante)
+
+
+def estado_del_circuito(circuito_abierto, ultimo_fallo):
+    if not circuito_abierto:
+        return "CERRADO"
+
+    if tiempo_para_reintento(ultimo_fallo) == 0:
+        return "HALF_OPEN"
+
+    return "ABIERTO"
 
 
 @app.route("/usuarios")
 def usuarios():
-    global fallos_usuarios, circuito_usuarios_abierto
+    global fallos_usuarios, circuito_usuarios_abierto, ultimo_fallo_usuarios
 
     if circuito_usuarios_abierto:
-        return jsonify({"error": "Servicio de usuarios temporalmente bloqueado"}), 503
+        if tiempo_para_reintento(ultimo_fallo_usuarios) > 0:
+            return jsonify({"error": "Servicio de usuarios temporalmente bloqueado"}), 503
+
+        print("Circuito de usuarios en HALF_OPEN, probando recuperación...", flush=True)
 
     try:
         response = requests.get("http://usuarios:5000/usuarios", timeout=2)
+
         fallos_usuarios = 0
+        circuito_usuarios_abierto = False
+        ultimo_fallo_usuarios = None
+
         return jsonify(response.json()), 200
 
     except:
         fallos_usuarios += 1
+        ultimo_fallo_usuarios = time.time()
+
         print(f"Fallo número {fallos_usuarios} en usuarios", flush=True)
 
         if fallos_usuarios >= 3:
@@ -35,18 +72,27 @@ def usuarios():
 
 @app.route("/mascotas")
 def mascotas():
-    global fallos_backend, circuito_backend_abierto
+    global fallos_backend, circuito_backend_abierto, ultimo_fallo_backend
 
     if circuito_backend_abierto:
-        return jsonify({"error": "Servicio de mascotas temporalmente bloqueado"}), 503
+        if tiempo_para_reintento(ultimo_fallo_backend) > 0:
+            return jsonify({"error": "Servicio de mascotas temporalmente bloqueado"}), 503
+
+        print("Circuito de mascotas en HALF_OPEN, probando recuperación...", flush=True)
 
     try:
         response = requests.get("http://backend:5000/mascotas", timeout=2)
+
         fallos_backend = 0
+        circuito_backend_abierto = False
+        ultimo_fallo_backend = None
+
         return jsonify(response.json()), 200
 
     except:
         fallos_backend += 1
+        ultimo_fallo_backend = time.time()
+
         print(f"Fallo número {fallos_backend} en mascotas", flush=True)
 
         if fallos_backend >= 3:
@@ -56,22 +102,43 @@ def mascotas():
         return jsonify({"error": "Servicio de mascotas no disponible"}), 503
 
 
+def verificar_servicio(url):
+    try:
+        response = requests.get(url, timeout=2)
+
+        if response.status_code == 200:
+            return "funcionando"
+        else:
+            return "no disponible"
+
+    except:
+        return "no disponible"
+
+
 @app.route("/estado-circuitos")
 def estado_circuitos():
+    estado_mascotas = verificar_servicio("http://backend:5000/mascotas")
+    estado_usuarios = verificar_servicio("http://usuarios:5000/usuarios")
+
     return jsonify({
         "mascotas": {
+            "servicio": estado_mascotas,
             "fallos": fallos_backend,
-            "circuito_abierto": circuito_backend_abierto
+            "circuito": estado_del_circuito(circuito_backend_abierto, ultimo_fallo_backend),
+            "reintento_en_segundos": tiempo_para_reintento(ultimo_fallo_backend)
         },
         "usuarios": {
+            "servicio": estado_usuarios,
             "fallos": fallos_usuarios,
-            "circuito_abierto": circuito_usuarios_abierto
+            "circuito": estado_del_circuito(circuito_usuarios_abierto, ultimo_fallo_usuarios),
+            "reintento_en_segundos": tiempo_para_reintento(ultimo_fallo_usuarios)
         }
     })
 
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
