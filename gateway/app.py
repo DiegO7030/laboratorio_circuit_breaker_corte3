@@ -37,6 +37,9 @@ def estado_del_circuito(circuito_abierto, ultimo_fallo):
 
     return "ABIERTO"
 
+@app.route("/")
+def home():
+    return "Gateway funcionando 😀🍻🎉"
 
 @app.route("/usuarios")
 def usuarios():

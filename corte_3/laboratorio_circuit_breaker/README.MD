@@ -440,4 +440,55 @@ Estos logs muestran que el sistema detectó los fallos, abrió el circuito, espe
 La recuperación implementada permite que el Circuit Breaker no quede abierto de forma permanente.  
 Ahora el gateway espera un tiempo controlado, intenta reconectarse y decide si cierra el circuito o si lo mantiene abierto. Esto mejora la tolerancia a fallos del sistema.
 
+---
+
+## Fase 5 - Validacion de sistema
+
+En esta fase  vamos a probar el sistema, es decir hacer un testing a cada una de las fases para validar que todo este funcionando correctamente.
+
+---
+
+## Servicios Funcionando
+
+l servicio se encuentra funcionando correctamente. Se realizaron pruebas desde el navegador a los endpoints `/usuarios`, `/mascotas` y `/estado-circuitos`, obteniendo respuestas exitosas con código `200`.
+
+Además, el sistema muestra la información registrada de usuarios y mascotas, y el estado de los circuitos aparece como **CERRADO**, lo que indica que los servicios están disponibles y respondiendo correctamente.
+
+![Evidencia Servicio Funcionando](evidencias/Serviciosfun1.png)
+
+---
+
+## Servicios Caído
+
+Durante las pruebas se verificaron dos escenarios de falla. En el primer caso, al detener el Gateway, las rutas `/usuarios` y `/estado-circuitos` no cargan y el navegador muestra el error `ERR_CONNECTION_REFUSED`, lo que indica que el punto de entrada principal del sistema se encuentra caído.
+
+En el segundo caso, el Gateway continúa funcionando, pero el servicio de usuarios no está disponible. Al consultar `/usuarios`, el sistema responde con el mensaje `"Servicio de usuarios no disponible"`, evidenciando que el Gateway detecta la falla del microservicio y responde de forma controlada.
+
+Esto nos demuestra el manejo de fallas dentro del sistema.
+
+[Evidencia Servicios Caidos](evidencias/Servicioscaido.png)
+
+---
+
+## Circuito abierto
+
+Durante la prueba se apagó el servicio de usuarios y se realizaron varias peticiones al endpoint `/usuarios`. Al inicio, el sistema responde con el mensaje `"Servicio de usuarios no disponible"` y aumenta el contador de fallos.
+
+Después de alcanzar el límite de fallos configurado, el Circuit Breaker cambia el estado del servicio de usuarios a **ABIERTO**. En este estado, el Gateway deja de intentar conectarse temporalmente al servicio caído y responde con el mensaje `"Servicio de usuarios temporalmente bloqueado"`.
+
+
+[Evidencia Servicios Caidos](evidencias/circuitoabierto.png)
+
+---
+
+## Recuperación del servicio
+
+En esta prueba se evidencia el proceso de recuperación del servicio de usuarios. Primero, el Circuit Breaker se encuentra en estado **ABIERTO**, bloqueando temporalmente las peticiones hacia el servicio caído y respondiendo con el mensaje `"Servicio de usuarios temporalmente bloqueado"`.
+
+Después de pasar el tiempo de reintento, el circuito cambia al estado **HALF_OPEN**, lo que indica que el sistema está intentando verificar si el servicio de usuarios ya puede volver a responder correctamente. Esta fase permite comprobar si el servicio se recuperó antes de cerrar nuevamente el circuito.
+
+[Evidencia Servicios Caidos](evidencias/Recuperacion.png)
+
+
+
 
