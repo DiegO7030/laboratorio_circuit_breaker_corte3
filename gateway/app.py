@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 TIEMPO_ESPERA = 10
 
-fallos_backend = 0
+fallos_backend = 0 
 circuito_backend_abierto = False
 ultimo_fallo_backend = None
 
@@ -56,7 +56,7 @@ def usuarios():
 
         fallos_usuarios = 0
         circuito_usuarios_abierto = False
-        ultimo_fallo_usuarios = None
+        ultimo_fallo_usuarios = None # Reiniciamos el tiempo de fallo al recuperar el servicio
 
         return jsonify(response.json()), 200
 
@@ -88,7 +88,7 @@ def mascotas():
 
         fallos_backend = 0
         circuito_backend_abierto = False
-        ultimo_fallo_backend = None
+        ultimo_fallo_backend = None # Reiniciamos el tiempo de fallo al recuperar el servicio
 
         return jsonify(response.json()), 200
 
@@ -96,7 +96,7 @@ def mascotas():
         fallos_backend += 1
         ultimo_fallo_backend = time.time()
 
-        print(f"Fallo número {fallos_backend} en mascotas", flush=True)
+        print(f"Fallo número {fallos_backend} en mascotas", flush=True) # Imprime el número de fallo actual para mascotas
 
         if fallos_backend >= 3:
             circuito_backend_abierto = True
@@ -105,25 +105,25 @@ def mascotas():
         return jsonify({"error": "Servicio de mascotas no disponible"}), 503
 
 
-def verificar_servicio(url):
+def verificar_servicio(url): # Función para verificar si un servicio está disponible
     try:
         response = requests.get(url, timeout=2)
 
-        if response.status_code == 200:
+        if response.status_code == 200: 
             return "funcionando"
         else:
-            return "no disponible"
+            return "no disponible" # Si el servicio responde pero con un error, lo consideramos no disponible
 
     except:
-        return "no disponible"
+        return "no disponible" # Si el servicio no responde o hay un error de conexión, lo consideramos no disponible
 
 
 @app.route("/estado-circuitos")
 def estado_circuitos():
-    estado_mascotas = verificar_servicio("http://backend:5000/mascotas")
-    estado_usuarios = verificar_servicio("http://usuarios:5000/usuarios")
+    estado_mascotas = verificar_servicio("http://backend:5000/mascotas") 
+    estado_usuarios = verificar_servicio("http://usuarios:5000/usuarios") 
 
-    return jsonify({
+    return jsonify({ 
         "mascotas": {
             "servicio": estado_mascotas,
             "fallos": fallos_backend,

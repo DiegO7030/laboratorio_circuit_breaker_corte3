@@ -510,5 +510,21 @@ Además, se verificó el funcionamiento del patrón **Circuit Breaker**, el cual
 
 En conclusión, la Fase 5 permitió comprobar que el sistema responde correctamente en escenarios normales, de falla y de recuperación, demostrando un mejor control de errores y una comunicación más segura entre los microservicios.
 
+---
+
+## Análisis final
+
+### ¿Qué cambió en el comportamiento del sistema?
+
+Antes, cuando un servicio fallaba, el Gateway seguía intentando comunicarse con él, generando errores repetidos. Con la implementación del Circuit Breaker, el sistema ahora detecta los fallos, abre el circuito y bloquea temporalmente las peticiones hacia el servicio caído.
+
+Esto permite que el sistema no insista innecesariamente y responda con mensajes controlados cuando un servicio no está disponible.
+
+### ¿Qué dificultades encontraron?
+
+ Una de las dificultad fue entender el estado Half-Open, porque no se trata solamente de abrir o cerrar el circuito, sino de permitir una prueba después de un tiempo de espera.
+
+Finalmente, también fue necesario revisar los logs del gateway para comprobar que el sistema realmente estaba detectando los fallos, abriendo el circuito y permitiendo la recuperación del servicio.
+
 
 
